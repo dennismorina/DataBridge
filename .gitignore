@@ -1,0 +1,13 @@
+bin/
+obj/
+artifacts/
+TestResults/
+.vs/
+.idea/
+*.user
+*.suo
+.DS_Store
+Thumbs.db
+output/*
+!output/.gitkeep
+.env

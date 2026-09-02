@@ -1,0 +1,32 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: databridge
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app_password
+    ports:
+      - "5434:5432"
+    volumes:
+      - databridge-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d databridge"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  databridge:
+    build:
+      context: .
+      dockerfile: src/DataBridge.Cli/Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABRIDGE_CONNECTION_STRING: Host=postgres;Port=5432;Database=databridge;Username=app;Password=app_password
+    volumes:
+      - ./samples:/app/samples:ro
+      - ./output:/app/output
+
+volumes:
+  databridge-postgres:

@@ -1,0 +1,100 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+
+  pull_request:
+    branches: [ main ]
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    name: Build & Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore DataBridge.sln
+
+      - name: Build
+        run: >
+          dotnet build DataBridge.sln
+          --configuration Release
+          --no-restore
+
+      - name: Run tests with coverage
+        run: >
+          dotnet test
+          --solution DataBridge.sln
+          --configuration Release
+          --no-build
+          --results-directory ./TestResults
+          --coverlet
+          --coverlet-output-format cobertura
+          --minimum-expected-tests 1
+
+      - name: CLI dry-run smoke test
+        run: >
+          dotnet run
+          --project src/DataBridge.Cli/DataBridge.Cli.csproj
+          --configuration Release
+          --no-build
+          --
+          import
+          --file samples/products.csv
+          --reject-file output/ci-dry-run-rejected.csv
+          --dry-run
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: TestResults
+          if-no-files-found: ignore
+
+  docker-smoke:
+    name: Docker & PostgreSQL Smoke Test
+    runs-on: ubuntu-latest
+    needs: build-and-test
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Build DataBridge container
+        run: docker compose build databridge
+
+      - name: Start PostgreSQL
+        run: docker compose up -d postgres
+
+      - name: Run containerized import
+        run: >
+          docker compose run --rm databridge
+          import
+          --file /app/samples/products.csv
+          --reject-file /app/output/ci-rejected.csv
+
+      - name: Verify imported product count
+        run: |
+          COUNT="$(docker compose exec -T postgres psql -U app -d databridge -tAc "SELECT COUNT(*) FROM products;")"
+          test "$COUNT" = "5"
+
+      - name: Show container state on failure
+        if: failure()
+        run: docker compose ps -a
+
+      - name: Stop containers
+        if: always()
+        run: docker compose down -v

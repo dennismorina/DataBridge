@@ -1,0 +1,9 @@
+sku,name,price,stockQuantity
+kb-001,Mechanical Keyboard,129.90,25
+ms-001,Wireless Mouse,59.90,50
+mon-001,27 Inch Monitor,349.00,12
+dock-001,USB-C Dock,189.50,8
+head-001,Office Headset,89.99,30
+,Missing SKU,10.00,1
+bad-price,Invalid Price,not-a-price,1
+KB-001,Duplicate Keyboard,99.99,2

@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <PackageReference Include="ClosedXML" />
+    <PackageReference Include="CsvHelper" />
+    <PackageReference Include="Npgsql" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DataBridge.Application\DataBridge.Application.csproj" />
+    <ProjectReference Include="..\DataBridge.Domain\DataBridge.Domain.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Migrations\*.sql" />
+  </ItemGroup>
+</Project>
