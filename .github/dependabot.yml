@@ -1,6 +1,8 @@
+
 version: 2
 
 updates:
+  # NuGet-Pakete
   - package-ecosystem: "nuget"
     directory: "/"
     schedule:
@@ -8,6 +10,7 @@ updates:
       day: "monday"
     open-pull-requests-limit: 10
 
+  # GitHub Actions
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
@@ -15,13 +18,22 @@ updates:
       day: "monday"
     open-pull-requests-limit: 5
 
+  # Docker: .NET Runtime und SDK
   - package-ecosystem: "docker"
     directory: "/src/DataBridge.Cli"
     schedule:
       interval: "weekly"
       day: "monday"
     open-pull-requests-limit: 5
+    ignore:
+      - dependency-name: "mcr.microsoft.com/dotnet/runtime"
+        update-types:
+          - "version-update:semver-major"
+      - dependency-name: "mcr.microsoft.com/dotnet/sdk"
+        update-types:
+          - "version-update:semver-major"
 
+  # Docker Compose: PostgreSQL und .NET
   - package-ecosystem: "docker-compose"
     directory: "/"
     schedule:
@@ -32,10 +44,21 @@ updates:
       - dependency-name: "postgres"
         update-types:
           - "version-update:semver-major"
+      - dependency-name: "mcr.microsoft.com/dotnet/runtime"
+        update-types:
+          - "version-update:semver-major"
+      - dependency-name: "mcr.microsoft.com/dotnet/sdk"
+        update-types:
+          - "version-update:semver-major"
 
+  # .NET SDK
   - package-ecosystem: "dotnet-sdk"
     directory: "/"
     schedule:
       interval: "weekly"
       day: "monday"
     open-pull-requests-limit: 5
+    ignore:
+      - dependency-name: "*"
+        update-types:
+          - "version-update:semver-major"
