@@ -17,7 +17,7 @@ RUN dotnet publish src/DataBridge.Cli/DataBridge.Cli.csproj \
     --no-restore \
     --output /app/publish
 
-FROM mcr.microsoft.com/dotnet/runtime:10.0 AS final
+FROM mcr.microsoft.com/dotnet/runtime:11.0 AS final
 WORKDIR /app
 
 COPY --from=build /app/publish .
