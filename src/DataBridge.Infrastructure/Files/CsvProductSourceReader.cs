@@ -1,7 +1,5 @@
-using System.Globalization;
 using System.Runtime.CompilerServices;
 using CsvHelper;
-using CsvHelper.Configuration;
 using DataBridge.Application.Abstractions;
 using DataBridge.Application.Models;
 
@@ -15,46 +13,52 @@ public sealed class CsvProductSourceReader : IProductSourceReader
     {
         using var streamReader = new StreamReader(filePath);
 
-        var configuration = new CsvConfiguration(CultureInfo.InvariantCulture)
+        var options = new CsvReaderOptions
         {
-            PrepareHeaderForMatch = args => HeaderNormalizer.Normalize(args.Header),
-            TrimOptions = TrimOptions.Trim
+            Separator = ',',
+            NormalizeHeaderName = HeaderNormalizer.Normalize,
+            TrimWhitespace = true,
+            MalformedData = CsvMalformedDataHandling.Throw,
+            MissingField = CsvMissingFieldHandling.Throw
         };
 
-        using var csv = new CsvReader(streamReader, configuration);
+        using var csv = CsvReader.Create(streamReader, options);
 
-        if (!await csv.ReadAsync())
+        await csv.ReadHeaderAsync(cancellationToken);
+
+        if (csv.Headers.Count == 0)
         {
             yield break;
         }
 
-        csv.ReadHeader();
-        ValidateHeaders(csv.HeaderRecord);
+        ValidateHeaders(csv.Headers);
 
         var rowNumber = 1;
 
-        while (await csv.ReadAsync())
+        while (await csv.ReadAsync(cancellationToken))
         {
             cancellationToken.ThrowIfCancellationRequested();
             rowNumber++;
 
             yield return new RawProductRow(
                 rowNumber,
-                csv.GetField("sku") ?? string.Empty,
-                csv.GetField("name") ?? string.Empty,
-                csv.GetField("price") ?? string.Empty,
-                csv.GetField("stockquantity") ?? string.Empty);
+                csv.GetString("sku"),
+                csv.GetString("name"),
+                csv.GetString("price"),
+                csv.GetString("stockquantity"));
         }
     }
 
-    private static void ValidateHeaders(string[]? headers)
+    private static void ValidateHeaders(IReadOnlyList<string> headers)
     {
-        var normalizedHeaders = (headers ?? [])
+        var normalizedHeaders = headers
             .Select(HeaderNormalizer.Normalize)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
         var required = new[] { "sku", "name", "price", "stockquantity" };
-        var missing = required.Where(x => !normalizedHeaders.Contains(x)).ToArray();
+        var missing = required
+            .Where(x => !normalizedHeaders.Contains(x))
+            .ToArray();
 
         if (missing.Length > 0)
         {
