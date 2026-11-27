@@ -14,26 +14,23 @@ public sealed class CsvRejectWriter : IRejectWriter
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var directory = Path.GetDirectoryName(Path.GetFullPath(filePath));
-        if (!string.IsNullOrWhiteSpace(directory))
+        Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(filePath))!);
+
+        using var csv = CsvWriter.ToFile(filePath, new CsvWriterOptions
         {
-            Directory.CreateDirectory(directory);
-        }
+            Quoting = CsvQuoting.WhenNeededOrWhitespace
+        });
 
-        using var writer = new StreamWriter(filePath);
-        using var csv = new CsvWriter(writer, CultureInfo.InvariantCulture);
-
-        csv.WriteHeader<RejectedRow>();
-        csv.NextRecord();
+        csv.WriteHeader("RowNumber", "Sku", "Name", "Price", "StockQuantity", "Reason");
 
         foreach (var row in rows)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            csv.WriteRecord(row);
-            csv.NextRecord();
+
+            csv.WriteRecord(row.RowNumber.ToString(CultureInfo.InvariantCulture),
+                row.Sku, row.Name, row.Price, row.StockQuantity, row.Reason);
         }
 
-        writer.Flush();
         return Task.CompletedTask;
     }
 }
